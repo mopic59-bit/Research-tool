@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>선생님 찾기</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'맑은 고딕','Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f4f6fb;min-height:100vh}
+  .header{background:#3a6fd8;padding:24px;text-align:center}
+  .header h1{color:#fff;font-size:20px;font-weight:600;margin-bottom:4px}
+  .header p{color:#c8d8f8;font-size:13px}
+  .container{max-width:820px;margin:0 auto;padding:20px 16px 40px}
+  .search-card{background:#fff;border:1px solid #dce3f0;border-radius:10px;padding:18px 20px;margin-bottom:10px}
+  .search-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .field{display:flex;align-items:center;gap:8px;flex:1;min-width:160px}
+  .field label{font-size:13px;font-weight:600;color:#1e2a3a;white-space:nowrap}
+  .field select,.field input{flex:1;height:38px;padding:0 10px;border:1px solid #dce3f0;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:#1e2a3a;outline:none}
+  .field select:focus,.field input:focus{border-color:#3a6fd8;box-shadow:0 0 0 2px rgba(58,111,216,0.15)}
+  .btn-search{height:38px;padding:0 20px;background:#3a6fd8;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+  .btn-search:hover{background:#2a5ac8}
+  .btn-reset{height:38px;padding:0 14px;background:#f4f6fb;color:#6b7a99;border:1px solid #dce3f0;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer}
+  .btn-reset:hover{background:#e8edf8}
+  .status{font-size:12px;color:#6b7a99;padding:4px 2px 8px}
+  .table-wrap{background:#fff;border:1px solid #dce3f0;border-radius:10px;overflow:hidden}
+  .thead{display:grid;grid-template-columns:2fr 1fr 2.2fr 1.8fr;background:#3a6fd8;padding:11px 16px}
+  .thead span{font-size:13px;font-weight:600;color:#fff;text-align:center}
+  .tbody{max-height:480px;overflow-y:auto}
+  .row{display:grid;grid-template-columns:2fr 1fr 2.2fr 1.8fr;padding:11px 16px;border-bottom:1px solid #f0f4ff;align-items:center}
+  .row:nth-child(even){background:#f8faff}
+  .row:last-child{border-bottom:none}
+  .row span{font-size:13px;color:#1e2a3a;text-align:center}
+  .empty{padding:48px;text-align:center;font-size:14px;color:#6b7a99}
+  @media(max-width:520px){
+    .search-row{flex-direction:column;align-items:stretch}
+    .field{min-width:0}
+    .btn-search,.btn-reset{width:100%;justify-content:center}
+    .thead,.row{grid-template-columns:1.5fr 1fr 2fr 1.5fr;padding:10px 8px}
+    .thead span,.row span{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏫 선생님 찾기</h1>
+  <p>과목 또는 성함으로 검색하세요</p>
+</div>
+<div class="container">
+  <div class="search-card">
+    <div class="search-row">
+      <div class="field">
+        <label for="subj">과목</label>
+        <select id="subj">
+          <option value="">(전체)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="name">성함</label>
+        <input id="name" type="text" placeholder="이름 입력..." autocomplete="off">
+      </div>
+      <button class="btn-search" onclick="doSearch()">🔍 검색</button>
+      <button class="btn-reset" onclick="doReset()">초기화</button>
+    </div>
+  </div>
+  <div class="status" id="status">전체 38명</div>
+  <div class="table-wrap">
+    <div class="thead">
+      <span>과목</span><span>성함</span><span>위치</span><span>근무요일</span>
+    </div>
+    <div class="tbody" id="tbody"></div>
+  </div>
+</div>
+<script>
+const DATA=[
+  ["국어","허재봉","진로진학실","월,화,수,목,금"],
+  ["국어","이진주","학생인성부실","월,화,수,목,금"],
+  ["국어","권히재","1층 본교무실","월,화,수,목,금"],
+  ["국어","김민정","4층 2학년 교무실","월,화,수,목,금"],
+  ["수학","조미선","1층 본교무실","월,화,수,목,금"],
+  ["수학","손주희","1층 본교무실","월,화,수,목,금"],
+  ["수학","권영철","4층 2학년 교무실","월,화,수,목,금"],
+  ["수학","김탁종","4층 2학년 교무실","월,화,수,목,금"],
+  ["수학","차지영","1층 본교무실","월,화,수,목,금"],
+  ["과학(물리)","손원옥","4층 1학년 교무실","월,화,수,목,금"],
+  ["과학(물리)(심리)","이광수","1층 본교무실","월,화,수,목,금"],
+  ["과학(화학)","김경희","1층 본교무실","월,화,수,목,금"],
+  ["과학(화학)","권규리","1층 본교무실","월,화,수,목,금"],
+  ["수학","현희정","4층 1학년 교무실","월,화,수,목,금"],
+  ["과학(생물)","이재숙","4층 2학년 교무실","월,화,수,목,금"],
+  ["과학(생물)","최미숙","1층 본교무실","월,화,수,목,금"],
+  ["과학(생물)","이정현","1층 본교무실","월,화,수,목,금"],
+  ["과학(지구과학)","김경민","교육 정보실","월,화,수,목,금"],
+  ["교무실무원","조혜정","1층 본교무실","월,화,수,목,금"],
+  ["특수","주수연","1층 본교무실","월,화,수,목,금"],
+  ["일본어","강다희","1층 본교무실","월,화,수,목,금"],
+  ["역사","권순화","1층 본교무실","월,화,수,목,금"],
+  ["사회(지리)","송유빈","4층 2학년 교무실","월,화,수,목,금"],
+  ["사회(일반사회)","곽은미","4층 2학년 교무실","월,화,수,목,금"],
+  ["영어","노지원","4층 2학년 교무실","월,화,수,목,금"],
+  ["영어","심규태","4층 2학년 교무실","월,화,수,목,금"],
+  ["사회(일반사회)","이화영","1층 본교무실","월,화,수,목,금"],
+  ["국어","김성훈","1층 본교무실","월,화,수,목,금"],
+  ["기술가정","박은경","1층 본교무실","월,화,수,목,금"],
+  ["한문(심리)","최진영","1층 본교무실","월,화,수,목,금"],
+  ["영어","장효정","4층 1학년 교무실","월,화,수,목,금"],
+  ["미술","박현지","4층 1학년 교무실","월,화,수,목,금"],
+  ["사회(일반사회)","최은희","4층 1학년 교무실","월,화,수,목,금"],
+  ["영어","정미숙","4층 1학년 교무실","월,화,수,목,금"],
+  ["음악","권정현","4층 1학년 교무실","월,화,수,목,금"],
+  ["사회(지리)","김경희","4층 1학년 교무실","월,화,수,목,금"],
+  ["역사","서은영","4층 1학년 교무실","월,화,수,목,금"],
+  ["진로","백윤용","진로진학실","월,화,수,목,금"],
+];
+const subjects=[...new Set(DATA.map(r=>r[0]))].sort();
+const sel=document.getElementById('subj');
+subjects.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+function render(rows){
+  const tb=document.getElementById('tbody');
+  if(!rows.length){tb.innerHTML='<div class="empty">검색 결과가 없습니다.</div>';document.getElementById('status').textContent='결과 없음';return;}
+  tb.innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span><span>${r[3]}</span></div>`).join('');
+  document.getElementById('status').textContent=`총 ${rows.length}명 검색됨`;
+}
+function doSearch(){
+  const s=sel.value;
+  const n=document.getElementById('name').value.trim();
+  let res=DATA;
+  if(s) res=res.filter(r=>r[0]===s);
+  if(n) res=res.filter(r=>r[1].includes(n));
+  render(res);
+}
+function doReset(){
+  sel.value='';
+  document.getElementById('name').value='';
+  render(DATA);
+}
+document.getElementById('name').addEventListener('input',doSearch);
+sel.addEventListener('change',doSearch);
+render(DATA);
+</script>
+</body>
+</html>
